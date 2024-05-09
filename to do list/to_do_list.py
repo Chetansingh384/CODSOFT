@@ -3,6 +3,7 @@ from tkinter import messagebox
 import json
 from datetime import datetime
 from PIL import Image, ImageTk
+import calendar
 
 class Task:
     def __init__(self, description, date_time, completed=False):
@@ -70,7 +71,7 @@ class ToDoListApp:
         description = self.task_input.get()
         if description:
             now = datetime.now()
-            date_time = now.strftime("%Y-%m-%d %H:%M:%S")
+            date_time = now.strftime("%d-%b-%Y")
             self.tasks.append(Task(description, date_time))
             self.task_input.delete(0, tk.END)
             self.load_tasks_to_listbox()
