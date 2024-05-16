@@ -3,7 +3,6 @@ from tkinter import messagebox
 import json
 from datetime import datetime
 from PIL import Image, ImageTk
-import calendar
 
 class Task:
     def __init__(self, description, date_time, completed=False):
@@ -30,6 +29,7 @@ class ToDoListApp:
 
         # Initialize tasks attribute
         self.tasks = []
+        self.deleted_tasks = []
 
         # Main Heading
         self.heading_label = tk.Label(master, text="To-Do List", fg="black", font=("Helvetica", 18))
@@ -49,8 +49,6 @@ class ToDoListApp:
         self.task_listbox = tk.Listbox(master, width=50,  selectbackground="black", bg="gray")
         self.task_listbox.place(relx=0.5, rely=0.35, anchor="center")
 
-        self.load_tasks_to_listbox()
-
         # Button Area
         self.button_frame = tk.Frame(master, bg="black")
         self.button_frame.place(relx=0.5, rely=0.9, anchor="center")
@@ -67,6 +65,10 @@ class ToDoListApp:
         self.save_button = tk.Button(self.button_frame, text="Save and Quit", command=self.save_tasks_quit, bg="lightcoral", padx=10, pady=5)
         self.save_button.pack(side=tk.LEFT, padx=5, pady=5)
 
+        # History Button
+        self.history_button = tk.Button(self.button_frame, text="History", command=self.show_history, bg="lightgray", padx=10, pady=5)
+        self.history_button.pack(side=tk.LEFT, padx=5, pady=5)
+
     def add_task(self):
         description = self.task_input.get()
         if description:
@@ -78,7 +80,8 @@ class ToDoListApp:
 
     def load_tasks_to_listbox(self):
         self.task_listbox.delete(0, tk.END)
-        for i, task in enumerate(self.tasks, start=1):
+        visible_tasks = [task for task in self.tasks if task not in self.deleted_tasks]
+        for i, task in enumerate(visible_tasks, start=1):
             if task.completed:
                 status = "\u2713"
                 color = "green"
@@ -99,7 +102,9 @@ class ToDoListApp:
     def delete_task(self):
         try:
             index = int(self.task_listbox.curselection()[0])
-            del self.tasks[index]
+            deleted_task = self.tasks[index]
+            deleted_task.completed = True  # Mark as deleted
+            self.deleted_tasks.append(deleted_task)
             self.load_tasks_to_listbox()
         except IndexError:
             messagebox.showwarning("Warning", "Please select a task.")
@@ -130,6 +135,25 @@ class ToDoListApp:
                 self.tasks = [Task(task['description'], task['date_time'], task['completed']) for task in data]
         except FileNotFoundError:
             self.tasks = []
+
+    def show_history(self):
+        history_window = tk.Toplevel(self.master)
+        history_window.title("Task History")
+
+        history_listbox = tk.Listbox(history_window, width=50)
+        history_listbox.pack(pady=10)
+
+        for i, task in enumerate(self.tasks, start=1):
+            if task in self.deleted_tasks:
+                if task.completed:
+                    status = "Completed but Deleted"
+                else:
+                    status = "Deleted"
+            elif task.completed:
+                status = "Completed"
+            else:
+                status = "Not Completed"
+            history_listbox.insert(tk.END, f"{i}. {task.description}   ({task.date_time}) - {status}")
 
 def main():
     root = tk.Tk()
