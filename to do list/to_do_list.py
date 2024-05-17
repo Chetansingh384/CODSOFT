@@ -16,7 +16,7 @@ class ToDoListApp:
         self.master.title("To-Do List App")
 
         # Load background image
-        image = Image.open("bg3.png")
+        image = Image.open("bg5.png")
         screen_width = master.winfo_screenwidth()
         screen_height = master.winfo_screenheight()
         image = image.resize((screen_width, screen_height), Image.LANCZOS)
@@ -27,13 +27,18 @@ class ToDoListApp:
         self.canvas.pack(fill="both", expand=True)
         self.canvas.create_image(0, 0, image=self.background_image, anchor="nw")
 
-        # Initialize tasks attribute
+        # Initialize tasks and points attribute
         self.tasks = []
         self.deleted_tasks = []
+        self.points = 0
 
         # Main Heading
-        self.heading_label = tk.Label(master, text="To-Do List", fg="black", font=("Helvetica", 18))
+        self.heading_label = tk.Label(master, text="To-Do List", fg="black", font=("Helvetica", 30))
         self.heading_label.place(relx=0.5, rely=0.1, anchor="center")
+
+        # Points Display
+        self.points_label = tk.Label(master, text=f"🏆 {self.points}", fg="black", font=("Helvetica", 14))
+        self.points_label.place(relx=0.9, rely=0.1, anchor="center")
 
         # Input Area
         self.input_frame = tk.Frame(master, bg="black")
@@ -46,7 +51,7 @@ class ToDoListApp:
         self.add_button.grid(row=0, column=1, padx=(2, 4), pady=5)
 
         # Task Listbox
-        self.task_listbox = tk.Listbox(master, width=50,  selectbackground="black", bg="gray")
+        self.task_listbox = tk.Listbox(master, width=50, selectbackground="red", bg="yellow")
         self.task_listbox.place(relx=0.5, rely=0.35, anchor="center")
 
         # Button Area
@@ -84,10 +89,10 @@ class ToDoListApp:
         for i, task in enumerate(visible_tasks, start=1):
             if task.completed:
                 status = "\u2713"
-                color = "green"
+                color = "dark green"
             else:
                 status = " "
-                color = "white"
+                color = "black"
             self.task_listbox.insert(tk.END, f"{i}. {status} {task.description}   ({task.date_time})")
             self.task_listbox.itemconfig(i - 1, {'fg': color})
 
@@ -96,8 +101,33 @@ class ToDoListApp:
             index = int(self.task_listbox.curselection()[0])
             self.tasks[index].completed = True
             self.load_tasks_to_listbox()
+            if all(task.completed for task in self.tasks if task not in self.deleted_tasks):
+                self.show_reward_message()
         except IndexError:
             messagebox.showwarning("Warning", "Please select a task.")
+
+    def show_reward_message(self):
+        reward_window = tk.Toplevel(self.master)
+        reward_window.title("Congratulations!")
+
+        message_label = tk.Label(reward_window, text="Yeah! You completed all your tasks. Claim your reward.", font=("Helvetica", 14))
+        message_label.pack(pady=10)
+
+        claim_button = tk.Button(reward_window, text="Claim", command=lambda: self.claim_reward(reward_window), bg="gold", padx=10, pady=5)
+        claim_button.pack(pady=10)
+
+        # Center the reward window
+        reward_window.update_idletasks()
+        width = reward_window.winfo_width()
+        height = reward_window.winfo_height()
+        x = (reward_window.winfo_screenwidth() // 2) - (width // 2)
+        y = (reward_window.winfo_screenheight() // 2) - (height // 2)
+        reward_window.geometry(f'{width}x{height}+{x}+{y}')
+
+    def claim_reward(self, reward_window):
+        self.points += 5
+        self.points_label.config(text=f"Points: {self.points}")
+        reward_window.destroy()
 
     def delete_task(self):
         try:
