@@ -22,31 +22,26 @@ class ToDoListApp:
         self.bot = bot
         self.chat_id = chat_id
 
-        
         image = Image.open("bg5.jpg")
         screen_width = master.winfo_screenwidth()
         screen_height = master.winfo_screenheight()
         image = image.resize((screen_width, screen_height), Image.LANCZOS)
         self.background_image = ImageTk.PhotoImage(image)
 
-        
         self.canvas = tk.Canvas(master, width=screen_width, height=screen_height)
         self.canvas.pack(fill="both", expand=True)
         self.canvas.create_image(0, 0, image=self.background_image, anchor="nw")
 
-       
         self.tasks = []
         self.deleted_tasks = []
         self.points = 0
 
-        
         self.heading_label = tk.Label(master, text="To-Do List", fg="blue", font=("Comic Sans MS", 30))
         self.heading_label.place(relx=0.5, rely=0.1, anchor="center")
 
         self.points_label = tk.Label(master, text=f"Points: {self.points}", fg="black", font=("Helvetica", 14))
         self.points_label.place(relx=0.9, rely=0.1, anchor="center")
 
-        
         self.input_frame = tk.Frame(master, bg="black")
         self.input_frame.place(relx=0.5, rely=0.2, anchor="center")
 
@@ -56,11 +51,9 @@ class ToDoListApp:
         self.add_button = tk.Button(self.input_frame, text="Add Task", command=self.add_task, bg="green", padx=0, pady=0, font=("arial", 13))
         self.add_button.grid(row=0, column=1, padx=(2, 4), pady=5)
 
-        
         self.task_listbox = tk.Listbox(master, width=35, selectbackground="red", bg="peru", font=("arial", 12))
         self.task_listbox.place(relx=0.5, rely=0.35, anchor="center")
-        
-        
+
         self.reminder_frame = tk.Frame(master, bg="peru", bd=2, relief="sunken")
         self.reminder_frame.place(relx=0.15, rely=0.1, anchor="center")
 
@@ -73,8 +66,6 @@ class ToDoListApp:
         self.set_button = tk.Button(self.reminder_frame, text="Set", command=self.set_reminder, bg="orange", font=("Helvetica", 12))
         self.set_button.grid(row=0, column=2, padx=5, pady=5)
 
-
-        
         self.button_frame = tk.Frame(master, bg="black")
         self.button_frame.place(relx=0.5, rely=0.9, anchor="center")
 
@@ -90,11 +81,11 @@ class ToDoListApp:
         self.save_button = tk.Button(self.button_frame, text="Save and Quit", command=self.save_tasks_quit, bg="lightcoral", padx=10, pady=5)
         self.save_button.pack(side=tk.LEFT, padx=5, pady=5)
 
-        
         self.history_button = tk.Button(self.button_frame, text="History", command=self.show_history, bg="lightgray", padx=10, pady=5)
         self.history_button.pack(side=tk.LEFT, padx=5, pady=5)
 
-         
+        # Start with an empty task list
+        self.load_tasks_to_listbox()
         self.run_scheduler()
 
     def add_task(self):
@@ -122,7 +113,9 @@ class ToDoListApp:
     def mark_task_complete(self):
         try:
             index = int(self.task_listbox.curselection()[0])
-            self.tasks[index].completed = True
+            visible_tasks = [task for task in self.tasks if task not in self.deleted_tasks]
+            task_to_complete = visible_tasks[index]
+            task_to_complete.completed = True
             self.load_tasks_to_listbox()
             if all(task.completed for task in self.tasks if task not in self.deleted_tasks):
                 self.show_reward_message()
@@ -139,7 +132,6 @@ class ToDoListApp:
         claim_button = tk.Button(reward_window, text="Claim", command=lambda: self.claim_reward(reward_window), bg="gold", padx=10, pady=5)
         claim_button.pack(pady=10)
 
-        # Center the reward window
         reward_window.update_idletasks()
         width = reward_window.winfo_width()
         height = reward_window.winfo_height()
@@ -155,9 +147,10 @@ class ToDoListApp:
     def delete_task(self):
         try:
             index = int(self.task_listbox.curselection()[0])
-            deleted_task = self.tasks[index]
-            deleted_task.completed = True  # Mark as deleted
-            self.deleted_tasks.append(deleted_task)
+            visible_tasks = [task for task in self.tasks if task not in self.deleted_tasks]
+            task_to_delete = visible_tasks[index]
+            task_to_delete.completed = True
+            self.deleted_tasks.append(task_to_delete)
             self.load_tasks_to_listbox()
         except IndexError:
             messagebox.showwarning("Warning", "Please select a task.")
@@ -167,7 +160,9 @@ class ToDoListApp:
             index = int(self.task_listbox.curselection()[0])
             new_description = self.task_input.get()
             if new_description:
-                self.tasks[index].description = new_description
+                visible_tasks = [task for task in self.tasks if task not in self.deleted_tasks]
+                task_to_update = visible_tasks[index]
+                task_to_update.description = new_description
                 self.task_input.delete(0, tk.END)
                 self.load_tasks_to_listbox()
         except IndexError:
@@ -228,8 +223,8 @@ class ToDoListApp:
 
 def main():
     root = tk.Tk()
-    bot = telepot.Bot('7067501789:AAE0tgLtz5GFNdPsxjQp0-fGRcEWaWMAKgk')  
-    chat_id = '5774731114'  
+    bot = telepot.Bot('7067501789:AAE0tgLtz5GFNdPsxjQp0-fGRcEWaWMAKgk')  # Replace with your actual bot token
+    chat_id = '5774731114'  # Replace with your actual chat ID
     app = ToDoListApp(root, bot, chat_id)
     root.mainloop()
 
