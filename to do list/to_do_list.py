@@ -3,6 +3,10 @@ from tkinter import messagebox
 import json
 from datetime import datetime
 from PIL import Image, ImageTk
+import telepot
+import schedule
+import time
+import threading
 
 class Task:
     def __init__(self, description, date_time, completed=False):
@@ -11,50 +15,66 @@ class Task:
         self.completed = completed
 
 class ToDoListApp:
-    def __init__(self, master):
+    def __init__(self, master, bot, chat_id):
         self.master = master
         self.master.title("To-Do List App")
 
-        # Load background image
-        image = Image.open("bg5.png")
+        self.bot = bot
+        self.chat_id = chat_id
+
+        
+        image = Image.open("bg5.jpg")
         screen_width = master.winfo_screenwidth()
         screen_height = master.winfo_screenheight()
         image = image.resize((screen_width, screen_height), Image.LANCZOS)
         self.background_image = ImageTk.PhotoImage(image)
 
-        # Create a canvas for the background image
+        
         self.canvas = tk.Canvas(master, width=screen_width, height=screen_height)
         self.canvas.pack(fill="both", expand=True)
         self.canvas.create_image(0, 0, image=self.background_image, anchor="nw")
 
-        # Initialize tasks and points attribute
+       
         self.tasks = []
         self.deleted_tasks = []
         self.points = 0
 
-        # Main Heading
-        self.heading_label = tk.Label(master, text="To-Do List", fg="black", font=("Helvetica", 30))
+        
+        self.heading_label = tk.Label(master, text="To-Do List", fg="blue", font=("Comic Sans MS", 30))
         self.heading_label.place(relx=0.5, rely=0.1, anchor="center")
 
-        # Points Display
-        self.points_label = tk.Label(master, text=f"🏆 {self.points}", fg="black", font=("Helvetica", 14))
+        self.points_label = tk.Label(master, text=f"Points: {self.points}", fg="black", font=("Helvetica", 14))
         self.points_label.place(relx=0.9, rely=0.1, anchor="center")
 
-        # Input Area
+        
         self.input_frame = tk.Frame(master, bg="black")
         self.input_frame.place(relx=0.5, rely=0.2, anchor="center")
 
-        self.task_input = tk.Entry(self.input_frame, width=30, bg="gray", fg="black")
+        self.task_input = tk.Entry(self.input_frame, width=30, bg="gray", fg="black", font=("arial", 16))
         self.task_input.grid(row=0, column=0, padx=(5, 3), pady=5)
 
-        self.add_button = tk.Button(self.input_frame, text="Add Task", command=self.add_task, bg="green", padx=0, pady=0)
+        self.add_button = tk.Button(self.input_frame, text="Add Task", command=self.add_task, bg="green", padx=0, pady=0, font=("arial", 13))
         self.add_button.grid(row=0, column=1, padx=(2, 4), pady=5)
 
-        # Task Listbox
-        self.task_listbox = tk.Listbox(master, width=50, selectbackground="red", bg="yellow")
+        
+        self.task_listbox = tk.Listbox(master, width=35, selectbackground="red", bg="peru", font=("arial", 12))
         self.task_listbox.place(relx=0.5, rely=0.35, anchor="center")
+        
+        
+        self.reminder_frame = tk.Frame(master, bg="peru", bd=2, relief="sunken")
+        self.reminder_frame.place(relx=0.15, rely=0.1, anchor="center")
 
-        # Button Area
+        self.reminder_label = tk.Label(self.reminder_frame, text="Set Reminder Interval (minutes):", fg="black", font=("Helvetica", 12))
+        self.reminder_label.grid(row=0, column=0, padx=5, pady=5)
+
+        self.reminder_interval = tk.Spinbox(self.reminder_frame, from_=1, to=120, width=5, font=("Helvetica", 12))
+        self.reminder_interval.grid(row=0, column=1, padx=5, pady=5)
+
+        self.set_button = tk.Button(self.reminder_frame, text="Set", command=self.set_reminder, bg="orange", font=("Helvetica", 12))
+        self.set_button.grid(row=0, column=2, padx=5, pady=5)
+
+
+        
         self.button_frame = tk.Frame(master, bg="black")
         self.button_frame.place(relx=0.5, rely=0.9, anchor="center")
 
@@ -70,9 +90,12 @@ class ToDoListApp:
         self.save_button = tk.Button(self.button_frame, text="Save and Quit", command=self.save_tasks_quit, bg="lightcoral", padx=10, pady=5)
         self.save_button.pack(side=tk.LEFT, padx=5, pady=5)
 
-        # History Button
+        
         self.history_button = tk.Button(self.button_frame, text="History", command=self.show_history, bg="lightgray", padx=10, pady=5)
         self.history_button.pack(side=tk.LEFT, padx=5, pady=5)
+
+         
+        self.run_scheduler()
 
     def add_task(self):
         description = self.task_input.get()
@@ -185,9 +208,29 @@ class ToDoListApp:
                 status = "Not Completed"
             history_listbox.insert(tk.END, f"{i}. {task.description}   ({task.date_time}) - {status}")
 
+    def notify_incomplete_tasks(self):
+        incomplete_tasks = [task.description for task in self.tasks if not task.completed and task not in self.deleted_tasks]
+        if incomplete_tasks:
+            message = "Incomplete Tasks please complete it:\n" + "\n".join(incomplete_tasks)
+            self.bot.sendMessage(self.chat_id, message)
+
+    def run_scheduler(self):
+        def scheduler():
+            while True:
+                schedule.run_pending()
+                time.sleep(1)
+
+        threading.Thread(target=scheduler, daemon=True).start()
+
+    def set_reminder(self):
+        interval = int(self.reminder_interval.get())
+        schedule.every(interval).minutes.do(self.notify_incomplete_tasks)
+
 def main():
     root = tk.Tk()
-    app = ToDoListApp(root)
+    bot = telepot.Bot('7067501789:AAE0tgLtz5GFNdPsxjQp0-fGRcEWaWMAKgk')  
+    chat_id = '5774731114'  
+    app = ToDoListApp(root, bot, chat_id)
     root.mainloop()
 
 if __name__ == "__main__":
